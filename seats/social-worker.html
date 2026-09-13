@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Coverage watch · SuiteBird PA</title>
+<link rel="icon" type="image/svg+xml" href="../assets/suitebird-mark.svg">
+<link rel="stylesheet" href="../assets/app.css">
+</head>
+<body>
+<script src="../assets/shell.js"></script>
+<script>renderShell("social-worker");</script>
+
+<div class="head">
+  <h1>Good morning, Denise</h1>
+  <p>Cedar Point Post Acute · Greenville, SC · <span id="stamp"></span></p>
+</div>
+
+<div class="body">
+  <div class="tiles" id="tiles"></div>
+
+  <div class="note">
+    <h3>Why this screen exists</h3>
+    <p>The only formal signal a facility sends today is the Notice of Medicare Non Coverage, issued 48 hours before coverage ends. A senior housing move in takes two to three weeks. Everything on this page is an attempt to close that gap.</p>
+  </div>
+
+  <div class="split">
+    <div class="card">
+      <header><h2>Coverage watch</h2><p>Select a resident to open the handoff.</p></header>
+      <table>
+        <thead><tr><th>Resident</th><th class="num">Left</th><th>Coverage</th><th>Disposition</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <div class="detail" id="detail"><div class="empty">Select a resident.</div></div>
+  </div>
+</div>
+
+<script>closeShell();</script>
+<script src="../assets/data.js"></script>
+<script>
+document.getElementById("stamp").textContent = "Today " + DEMO.today;
+
+const list = PA.watchList();
+const moved = {};
+let sel = null;
+
+function stateOf(r) { return moved[r.id] || r.disposition; }
+
+function clock(r) {
+  const band = PA.band(r);
+  if (r.payer === "part_a") {
+    const pct = Math.min(100, (r.daysUsed / r.daysTotal) * 100);
+    return `<div class="clock b-${band}"><span class="bar"><i style="width:${pct}%"></i><u style="left:20%"></u></span></div>`;
+  }
+  const granted = Math.max(1, Math.floor(r.dayOfStay / r.authInterval));
+  let b = ""; for (let i = 0; i < Math.min(granted, 5); i++) b += "<s></s>";
+  b += `<s class="now${PA.daysLeft(r) <= 3 ? " hot" : ""}"></s><s class="next"></s>`;
+  return `<div class="clock b-${band}"><span class="auth">${b}</span></div>`;
+}
+
+const pills = {
+  none: '<span class="pill critical">Nothing planned</span>',
+  handoff_sent: '<span class="pill info">Handoff sent</span>',
+  move_in_confirmed: '<span class="pill ok">Move in confirmed</span>',
+  medicaid_pending: '<span class="pill urgent">Medicaid pending</span>'
+};
+
+function draw() {
+  document.getElementById("rows").innerHTML = list.map((r) => {
+    const left = PA.daysLeft(r), band = PA.band(r);
+    const cls = band === "critical" ? "critical" : band === "urgent" ? "urgent" : "info";
+    return `<tr class="pick ${sel === r.id ? "on" : ""}" tabindex="0" data-id="${r.id}">
+      <td><b>${r.name}</b><span class="sub">Room ${r.room}</span></td>
+      <td class="num"><span class="pill ${cls}">${left}d</span></td>
+      <td>${clock(r)}<span class="sub">${r.payer === "part_a" ? "Part A · ends " + PA.fmt(r.coverageEnds) : "Auth through " + PA.fmt(r.authThrough)}</span></td>
+      <td>${pills[stateOf(r)] || ""}</td></tr>`;
+  }).join("");
+
+  document.querySelectorAll("#rows tr").forEach((tr) => {
+    tr.onclick = () => open(tr.dataset.id);
+    tr.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(tr.dataset.id); } };
+  });
+
+  const crit = list.filter((r) => PA.band(r) === "critical").length;
+  const none = list.filter((r) => stateOf(r) === "none").length;
+  const early = list.filter((r) => PA.daysLeft(r) > 14 && ["handoff_sent", "move_in_confirmed"].includes(stateOf(r))).length;
+
+  document.getElementById("tiles").innerHTML = `
+    <div class="tile"><span>On the watch</span><b>${list.length}</b><em>inside 30 days</em></div>
+    <div class="tile crit"><span>Seven days or less</span><b>${crit}</b><em>past the useful window</em></div>
+    <div class="tile urg"><span>Nothing planned yet</span><b>${none}</b><em>no disposition on file</em></div>
+    <div class="tile good"><span>Resolved early</span><b>${early}</b><em>settled with 14 days to spare</em></div>`;
+}
+
+function open(id) {
+  sel = id;
+  const r = DEMO.residents.find((x) => x.id === id);
+  const st = stateOf(r), left = PA.daysLeft(r);
+  const actions = st === "none"
+    ? '<button class="go" id="send">Send handoff</button><button id="sup">Not a candidate</button>'
+    : `<button disabled>Handoff sent ${PA.fmt(DEMO.today)}</button>`;
+
+  document.getElementById("detail").innerHTML = `
+    <header><h3>${r.name}</h3><p>Room ${r.room} · ${r.planName} · ${left} days left</p></header>
+    <dl>
+      <dt>Admitted</dt><dd>${PA.fmt(r.admitted)}</dd>
+      <dt>Coverage ends</dt><dd>${PA.fmt(r.payer === "part_a" ? r.coverageEnds : r.authThrough)}</dd>
+      <dt>Care level</dt><dd>${r.careLevel}</dd>
+      <dt>Budget</dt><dd>${r.budget}</dd>
+      <dt>Geography</dt><dd>${r.geo}</dd>
+      <dt>Contact</dt><dd>${r.rp}</dd>
+      ${r.note ? `<dt>Note</dt><dd>${r.note}</dd>` : ""}
+    </dl>
+    <div class="act">${actions}</div>
+    <div class="guard"><b>The handoff packet carries</b> first name, projected discharge date, care level, budget range, geography, and contact. It cannot carry diagnosis, treatment, or clinical notes. That limit is structural, not a setting.</div>`;
+
+  const s = document.getElementById("send");
+  if (s) s.onclick = () => { moved[r.id] = "handoff_sent"; draw(); open(r.id); };
+  const p = document.getElementById("sup");
+  if (p) p.onclick = () => { moved[r.id] = "medicaid_pending"; draw(); open(r.id); };
+  draw();
+}
+
+draw();
+</script>
+</body>
+</html>

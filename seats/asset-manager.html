@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Portfolio occupancy · SuiteBird PA</title>
+<link rel="icon" type="image/svg+xml" href="../assets/suitebird-mark.svg">
+<link rel="stylesheet" href="../assets/app.css">
+</head>
+<body>
+<script src="../assets/shell.js"></script>
+<script>renderShell("asset-manager");</script>
+
+<div class="head">
+  <h1>Portfolio occupancy</h1>
+  <p>10 buildings · 4 operators · <span id="stamp"></span></p>
+</div>
+
+<div class="body">
+  <div class="tiles" id="tiles"></div>
+
+  <div class="note">
+    <h3>Structural vacancy and recoverable vacancy are different problems</h3>
+    <p>A building below target because of market, unit mix, or condition is a real estate question. A building below target because beds sit dark between stays is an operations question, measured at daily resolution rather than quarterly average. The split below separates the two. Only the recoverable share is addressable here, and reporting it any other way would overstate what this can do.</p>
+  </div>
+
+  <div class="card">
+    <header>
+      <h2>Buildings</h2>
+      <p>Sorted by variance from the ${""}<span id="tgt"></span> target.</p>
+      <span class="key" style="margin-left:auto">
+        <span><i style="background:#B9B2C6"></i>Structural</span>
+        <span><i style="background:var(--blue)"></i>Recoverable</span>
+      </span>
+    </header>
+    <table>
+      <thead><tr>
+        <th>Building</th><th>Operator</th><th>Structure</th>
+        <th class="num">Occupancy</th><th>Vacancy split</th>
+        <th class="num">Coverage</th><th class="num">Recovered</th>
+      </tr></thead>
+      <tbody id="rows"></tbody>
+      <tfoot id="foot"></tfoot>
+    </table>
+  </div>
+
+  <div class="card">
+    <header><h2>Where the recovered bed days came from</h2><p>Two buildings report from live records. The rest is demo context.</p></header>
+    <table>
+      <thead><tr><th>Building</th><th>Source</th><th class="num">Bed days</th></tr></thead>
+      <tbody id="prov"></tbody>
+    </table>
+    <div class="guard"><b>No resident level data reaches this seat.</b> Not by permission setting, but because the portfolio aggregate is the only object this view is built on.</div>
+  </div>
+</div>
+
+<script>closeShell();</script>
+<script src="../assets/data.js"></script>
+<script>
+document.getElementById("stamp").textContent = DEMO.today;
+document.getElementById("tgt").textContent = DEMO.portfolio.target + "%";
+
+const rows = PA.portfolioRows();
+const t = PA.portfolioTotals();
+
+document.getElementById("tiles").innerHTML = `
+  <div class="tile"><span>Blended micro occupancy</span><b>${t.occupancy}%</b><em>against an ${DEMO.portfolio.target}% target</em></div>
+  <div class="tile urg"><span>Recoverable vacancy</span><b>${t.recoverable}%</b><em>addressable at daily resolution</em></div>
+  <div class="tile"><span>Structural vacancy</span><b>${t.structural}%</b><em>not addressable here</em></div>
+  <div class="tile good"><span>Recovered bed days</span><b>${t.rec}</b><em>month to date, ${t.beds} beds</em></div>`;
+
+document.getElementById("rows").innerHTML = rows.map((b) => {
+  const gapCls = b.gap > 8 ? "critical" : b.gap > 0 ? "urgent" : "ok";
+  const covCls = b.coverage < 1.1 ? "critical" : b.coverage < 1.3 ? "urgent" : "ok";
+  const scale = 2.6;
+  return `<tr>
+    <td><b>${b.name}</b><span class="sub">${b.kind} · ${b.beds} beds${b.live ? ' · <span style="color:var(--brand)">live data</span>' : ""}</span></td>
+    <td>${b.operator}</td>
+    <td><span class="pill ${b.structure === "RIDEA" ? "info" : ""}">${b.structure}</span></td>
+    <td class="num"><span class="pill ${gapCls}">${b.occupancy}%</span></td>
+    <td><span class="vac" role="img" aria-label="${b.structural}% structural, ${b.recoverable}% recoverable">
+      <s class="str" style="width:${b.structural * scale}%"></s><s class="rec" style="width:${b.recoverable * scale}%"></s>
+    </span><span class="sub">${b.structural}% structural · ${b.recoverable}% recoverable</span></td>
+    <td class="num"><span class="pill ${covCls}">${b.coverage.toFixed(2)}x</span></td>
+    <td class="num">${b.rec}</td></tr>`;
+}).join("");
+
+document.getElementById("foot").innerHTML = `<tr>
+  <td colspan="3">Portfolio · ${t.beds} beds · ${t.ridea} RIDEA, ${rows.length - t.ridea} triple net</td>
+  <td class="num">${t.occupancy}%</td>
+  <td>${t.structural}% structural · ${t.recoverable}% recoverable</td>
+  <td class="num"></td><td class="num">${t.rec}</td></tr>`;
+
+const live = rows.filter((b) => b.live);
+const other = rows.filter((b) => !b.live);
+const r = PA.recoveredBedDays();
+
+document.getElementById("prov").innerHTML =
+  `<tr><td><b>Meadowbrook Senior Living</b></td>
+     <td>Conversion retention, computed from confirmed move ins<span class="sub">traceable to named residents in Seat 03</span></td>
+     <td class="num">${r.conversion}</td></tr>
+   <tr><td><b>Meadowbrook Senior Living</b></td>
+     <td>Micro vacancy recovery, computed from short stays<span class="sub">traceable to unit and fill date</span></td>
+     <td class="num">${r.micro}</td></tr>
+   <tr><td><b>Cedar Point Post Acute</b></td>
+     <td>Sending building, produces handoffs rather than recovered days<span class="sub">credit accrues at the receiving community</span></td>
+     <td class="num">0</td></tr>
+   <tr><td>${other.length} other buildings</td>
+     <td>Demo context, not computed<span class="sub">replace with live data as buildings onboard</span></td>
+     <td class="num">${other.reduce((n, b) => n + b.rec, 0)}</td></tr>`;
+</script>
+</body>
+</html>

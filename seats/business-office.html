@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Payer board · SuiteBird PA</title>
+<link rel="icon" type="image/svg+xml" href="../assets/suitebird-mark.svg">
+<link rel="stylesheet" href="../assets/app.css">
+</head>
+<body>
+<script src="../assets/shell.js"></script>
+<script>renderShell("business-office");</script>
+
+<div class="head">
+  <h1>Good morning, Ronnie</h1>
+  <p>Cedar Point Post Acute · Greenville, SC · <span id="stamp"></span></p>
+</div>
+
+<div class="body">
+  <div class="tiles" id="tiles"></div>
+
+  <div class="note">
+    <h3>Two clocks, not one</h3>
+    <p>Traditional Part A runs a 100 day benefit you can count down, with coinsurance starting at day 21. Medicare Advantage runs no clock at all. It is a rolling authorization reviewed every five to seven days that can end with two days of notice at any point in the stay. The board draws them differently on purpose. A solid bar is a countdown. Dashed blocks are authorization windows that have not been granted yet.</p>
+  </div>
+
+  <div class="card">
+    <header><h2>Residents on a coverage clock</h2><p id="sub"></p></header>
+    <table>
+      <thead><tr><th>Resident</th><th>Payer</th><th>Clock</th><th class="num">Ends</th><th>Next action</th><th></th></tr></thead>
+      <tbody id="on"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <header><h2>No coverage clock</h2><p>Long stay and private pay. Excluded from the watch by design.</p></header>
+    <table>
+      <thead><tr><th>Resident</th><th>Payer</th><th>Status</th></tr></thead>
+      <tbody id="off"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>closeShell();</script>
+<script src="../assets/data.js"></script>
+<script>
+document.getElementById("stamp").textContent = "Today " + DEMO.today;
+
+function clock(r) {
+  const left = PA.daysLeft(r), band = PA.band(r);
+  if (r.payer === "part_a") {
+    const pct = Math.min(100, (r.daysUsed / r.daysTotal) * 100);
+    return `<div class="clock b-${band}"><span class="n">${left}</span><span class="u">d</span>
+      <span class="bar" role="img" aria-label="${r.daysUsed} of ${r.daysTotal} benefit days used"><i style="width:${pct}%"></i><u style="left:20%"></u></span></div>`;
+  }
+  const granted = Math.max(1, Math.floor(r.dayOfStay / r.authInterval));
+  let b = ""; for (let i = 0; i < Math.min(granted, 6); i++) b += "<s></s>";
+  b += `<s class="now${left <= 3 ? " hot" : ""}"></s><s class="next"></s><s class="next"></s>`;
+  return `<div class="clock b-${band}"><span class="n">${left}</span><span class="u">d</span>
+    <span class="auth" role="img" aria-label="Authorized through ${r.authThrough}, reviewed every ${r.authInterval} days">${b}</span></div>`;
+}
+
+function act(r) {
+  const left = PA.daysLeft(r);
+  if (r.disposition === "medicaid_pending") return '<span class="pill urgent">Medicaid pending</span>';
+  if (r.payer === "advantage" && r.authRisk === "high") return '<span class="pill critical">Appeal ready</span>';
+  if (left <= 7) return '<span class="pill critical">Confirm discharge</span>';
+  if (left <= 14) return '<span class="pill urgent">Verify clock</span>';
+  if (left <= 30) return '<span class="pill info">On watch</span>';
+  return '<span class="pill">Routine</span>';
+}
+
+const on = DEMO.residents.filter(PA.onClock).sort((a, b) => PA.daysLeft(a) - PA.daysLeft(b));
+const off = DEMO.residents.filter((r) => !PA.onClock(r));
+
+document.getElementById("on").innerHTML = on.map((r) => `<tr>
+  <td><b>${r.name}</b><span class="sub">Room ${r.room} · admitted ${PA.fmt(r.admitted)}</span></td>
+  <td>${r.payer === "part_a" ? "Part A" : "Advantage"}<span class="sub">${r.planName.replace("Medicare Advantage, ", "")}</span></td>
+  <td>${clock(r)}</td>
+  <td class="num">${PA.fmt(r.payer === "part_a" ? r.coverageEnds : r.authThrough)}<span class="sub">${r.payer === "part_a" ? "day " + r.daysUsed + " of 100" : "review every " + r.authInterval + "d"}</span></td>
+  <td>${act(r)}</td><td><button class="sm">Update</button></td></tr>`).join("");
+
+document.getElementById("off").innerHTML = off.map((r) => `<tr>
+  <td><b>${r.name}</b><span class="sub">Room ${r.room}</span></td>
+  <td>${r.planName}</td><td><span class="pill">${r.note}</span></td></tr>`).join("");
+
+const crit = on.filter((r) => PA.band(r) === "critical").length;
+const urg = on.filter((r) => PA.band(r) === "urgent").length;
+const adv = on.filter((r) => r.payer === "advantage").length;
+
+document.getElementById("tiles").innerHTML = `
+  <div class="tile"><span>On a coverage clock</span><b>${on.length}</b><em>of ${DEMO.residents.length} residents</em></div>
+  <div class="tile crit"><span>Seven days or less</span><b>${crit}</b><em>needs a disposition now</em></div>
+  <div class="tile urg"><span>Advantage, no fixed clock</span><b>${adv}</b><em>authorization risk, not day count</em></div>
+  <div class="tile good"><span>Clocks current today</span><b>100%</b><em>below 90% the watch stops working</em></div>`;
+
+document.getElementById("sub").textContent = "Sorted by days remaining.";
+</script>
+</body>
+</html>

@@ -1,1 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Building overview · SuiteBird PA</title>
+<link rel="icon" type="image/svg+xml" href="../assets/suitebird-mark.svg">
+<link rel="stylesheet" href="../assets/app.css">
+</head>
+<body>
+<script src="../assets/shell.js"></script>
+<script>renderShell("administrator");</script>
 
+<div class="head">
+  <h1>Good morning, Curtis</h1>
+  <p>Cedar Point Post Acute · Greenville, SC · <span id="stamp"></span></p>
+</div>
+
+<div class="body">
+  <div class="tiles" id="tiles"></div>
+
+  <div class="card">
+    <header><h2>Coverage bands</h2><p>Every resident on a clock, grouped by how long is left. Click through to the caseload.</p></header>
+    <table>
+      <thead><tr><th>Band</th><th class="num">Residents</th><th class="num">Resolved</th><th class="num">Open</th><th>Status</th></tr></thead>
+      <tbody id="bands"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <header><h2>Payer mix</h2><p>Share of census by payer. Drives length of stay and revenue per bed day.</p></header>
+    <table>
+      <thead><tr><th>Payer</th><th class="num">Residents</th><th class="num">Share</th><th>Coverage behavior</th></tr></thead>
+      <tbody id="mix"></tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <header><h2>Exceptions</h2><p>Residents inside seven days with no disposition on file. This list should be empty.</p></header>
+    <table>
+      <thead><tr><th>Resident</th><th class="num">Days left</th><th>Payer</th><th>Owner</th></tr></thead>
+      <tbody id="exc"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>closeShell();</script>
+<script src="../assets/data.js"></script>
+<script>
+document.getElementById("stamp").textContent = "Today " + DEMO.today;
+
+const b = DEMO.buildings.cedarpoint;
+const onClock = DEMO.residents.filter(PA.onClock);
+const watch = PA.watchList();
+const resolvedStates = ["handoff_sent", "move_in_confirmed", "medicaid_pending"];
+const resolved = watch.filter((r) => resolvedStates.includes(r.disposition));
+const rec = PA.recoveredBedDays();
+const occ = ((b.census / b.beds) * 100).toFixed(1);
+
+document.getElementById("tiles").innerHTML = `
+  <div class="tile"><span>Census</span><b>${occ}%</b><em>${b.census} of ${b.beds} licensed beds</em></div>
+  <div class="tile"><span>On a coverage clock</span><b>${onClock.length}</b><em>${watch.length} inside 30 days</em></div>
+  <div class="tile crit"><span>Unresolved at seven days</span><b>${watch.filter((r) => PA.daysLeft(r) <= 7 && !resolvedStates.includes(r.disposition)).length}</b><em>target is zero</em></div>
+  <div class="tile good"><span>Recovered bed days</span><b>${rec.total}</b><em>${PA.money(rec.total * DEMO.pricing.perRecoveredBedDay)} billable</em></div>`;
+
+const bands = [
+  ["Seven days or less", (r) => PA.daysLeft(r) <= 7, "critical"],
+  ["Eight to fourteen", (r) => PA.daysLeft(r) > 7 && PA.daysLeft(r) <= 14, "urgent"],
+  ["Fifteen to thirty", (r) => PA.daysLeft(r) > 14 && PA.daysLeft(r) <= 30, "info"],
+  ["Beyond thirty", (r) => PA.daysLeft(r) > 30, ""]
+];
+
+document.getElementById("bands").innerHTML = bands.map(([label, test, cls]) => {
+  const set = onClock.filter(test);
+  const done = set.filter((r) => resolvedStates.includes(r.disposition)).length;
+  const open = set.length - done;
+  const state = set.length === 0 ? '<span class="pill">Empty</span>'
+    : open === 0 ? '<span class="pill ok">All resolved</span>'
+    : `<span class="pill ${cls || "info"}">${open} open</span>`;
+  return `<tr><td><b>${label}</b></td><td class="num">${set.length}</td>
+    <td class="num">${done}</td><td class="num">${open}</td><td>${state}</td></tr>`;
+}).join("");
+
+const payerLabels = {
+  part_a: ["Medicare Part A", "100 day benefit, countable"],
+  advantage: ["Medicare Advantage", "Rolling authorization, no fixed clock"],
+  medicaid: ["Medicaid", "Long stay, no clock"],
+  private: ["Private pay", "Long stay, no clock"]
+};
+
+document.getElementById("mix").innerHTML = Object.keys(payerLabels).map((k) => {
+  const set = DEMO.residents.filter((r) => r.payer === k);
+  if (!set.length) return "";
+  const share = ((set.length / DEMO.residents.length) * 100).toFixed(0);
+  return `<tr><td><b>${payerLabels[k][0]}</b></td><td class="num">${set.length}</td>
+    <td class="num">${share}%</td><td><span class="sub" style="color:var(--muted)">${payerLabels[k][1]}</span></td></tr>`;
+}).join("");
+
+const exceptions = watch.filter((r) => PA.daysLeft(r) <= 7 && !resolvedStates.includes(r.disposition));
+document.getElementById("exc").innerHTML = exceptions.length
+  ? exceptions.map((r) => `<tr><td><b>${r.name}</b><span class="sub">Room ${r.room}</span></td>
+      <td class="num"><span class="pill critical">${PA.daysLeft(r)}d</span></td>
+      <td>${r.planName}</td><td>Denise Aubrey<span class="sub">Social services</span></td></tr>`).join("")
+  : '<tr><td colspan="4" style="color:var(--muted)">No exceptions today.</td></tr>';
+</script>
+</body>
+</html>

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pipeline · SuiteBird PA</title>
+<link rel="icon" type="image/svg+xml" href="../assets/suitebird-mark.svg">
+<link rel="stylesheet" href="../assets/app.css">
+</head>
+<body>
+<script src="../assets/shell.js"></script>
+<script>renderShell("sales-director");</script>
+
+<div class="head">
+  <h1>Good morning, Bianca</h1>
+  <p>Meadowbrook Senior Living · Greenville, SC · <span id="stamp"></span></p>
+</div>
+
+<div class="body">
+  <div class="tiles" id="tiles"></div>
+
+  <div class="split">
+    <div class="card">
+      <header><h2>Incoming handoffs</h2><p>Sorted by discharge date, not by lead age.</p></header>
+      <table>
+        <thead><tr><th>Lead</th><th>From</th><th class="num">Discharge by</th><th>Stage</th><th class="num">Unit</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <div class="detail" id="detail"><div class="empty">Select a lead.</div></div>
+  </div>
+
+  <div class="card">
+    <header><h2>Recovered bed days, month to date</h2><p>What this seat produced, in the unit SuiteBird bills on.</p></header>
+    <table>
+      <thead><tr><th>Source</th><th>Detail</th><th class="num">Bed days</th><th class="num">Billable</th></tr></thead>
+      <tbody id="rev"></tbody>
+      <tfoot id="revfoot"></tfoot>
+    </table>
+  </div>
+</div>
+
+<script>closeShell();</script>
+<script src="../assets/data.js"></script>
+<script>
+document.getElementById("stamp").textContent = "Today " + DEMO.today;
+
+const stages = {
+  new: '<span class="pill critical">New, unworked</span>',
+  touring: '<span class="pill info">Touring</span>',
+  move_in_confirmed: '<span class="pill ok">Move in confirmed</span>',
+  declined: '<span class="pill">Declined</span>'
+};
+
+const rows = [...DEMO.pipeline].sort((a, b) => PA.d(a.dischargeBy) - PA.d(b.dischargeBy));
+const st = {};
+let sel = null;
+const stageOf = (p) => st[p.id] || p.stage;
+
+function draw() {
+  document.getElementById("rows").innerHTML = rows.map((p) => {
+    const left = PA.daysBetween(DEMO.today, p.dischargeBy);
+    const cls = left <= 7 ? "critical" : left <= 14 ? "urgent" : "info";
+    return `<tr class="pick ${sel === p.id ? "on" : ""}" tabindex="0" data-id="${p.id}">
+      <td><b>${p.first}</b><span class="sub">${p.careLevel}</span></td>
+      <td>${p.from}<span class="sub">received ${PA.fmt(p.received)}</span></td>
+      <td class="num"><span class="pill ${cls}">${left}d</span><span class="sub">${PA.fmt(p.dischargeBy)}</span></td>
+      <td>${stages[stageOf(p)]}</td>
+      <td class="num">${p.unit || "not held"}</td></tr>`;
+  }).join("");
+
+  document.querySelectorAll("#rows tr").forEach((tr) => {
+    tr.onclick = () => open(tr.dataset.id);
+    tr.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(tr.dataset.id); } };
+  });
+
+  const openN = rows.filter((p) => ["new", "touring"].includes(stageOf(p))).length;
+  const unworked = rows.filter((p) => stageOf(p) === "new").length;
+  const won = rows.filter((p) => stageOf(p) === "move_in_confirmed").length;
+  const t = PA.recoveredBedDays();
+
+  document.getElementById("tiles").innerHTML = `
+    <div class="tile"><span>Open handoffs</span><b>${openN}</b><em>${unworked} not yet worked</em></div>
+    <div class="tile good"><span>Move ins confirmed</span><b>${won}</b><em>${Math.round((won / rows.length) * 100)}% of handoffs</em></div>
+    <div class="tile"><span>Recovered bed days</span><b>${t.total}</b><em>${t.conversion} conversion, ${t.micro} micro vacancy</em></div>
+    <div class="tile good"><span>Billable, month to date</span><b>${PA.money(t.total * DEMO.pricing.perRecoveredBedDay)}</b><em>at ${PA.money(DEMO.pricing.perRecoveredBedDay)} per bed day</em></div>`;
+
+  revenue();
+}
+
+function revenue() {
+  const rate = DEMO.pricing.perRecoveredBedDay;
+  const conv = DEMO.pipeline.filter((p) => p.recoveredDays > 0).map((p) =>
+    `<tr><td>Conversion retention</td><td>${p.first} · unit ${p.unit} · moved in ${PA.fmt(p.moveIn)}</td>
+     <td class="num">${p.recoveredDays}</td><td class="num">${PA.money(p.recoveredDays * rate)}</td></tr>`).join("");
+  const micro = DEMO.microStays.map((m) =>
+    `<tr><td>Micro vacancy recovery</td><td>Unit ${m.unit} · short stay filled ${PA.fmt(m.filled)}</td>
+     <td class="num">${m.days}</td><td class="num">${PA.money(m.days * rate)}</td></tr>`).join("");
+  const t = PA.recoveredBedDays();
+  document.getElementById("rev").innerHTML = conv + micro;
+  document.getElementById("revfoot").innerHTML =
+    `<tr><td colspan="2">Total · conversion capped at ${DEMO.pricing.conversionCapDays} bed days per episode</td>
+     <td class="num">${t.total}</td><td class="num">${PA.money(t.total * rate)}</td></tr>`;
+}
+
+function open(id) {
+  sel = id;
+  const p = rows.find((x) => x.id === id);
+  const s = stageOf(p), left = PA.daysBetween(DEMO.today, p.dischargeBy);
+  let act = "";
+  if (s === "new") act = '<button class="go" id="acc">Accept and hold a unit</button><button id="dec">Decline</button>';
+  else if (s === "touring") act = '<button class="go" id="con">Confirm move in</button>';
+  else act = `<button disabled>${s === "declined" ? "Declined" : "Move in " + PA.fmt(p.moveIn)}</button>`;
+
+  document.getElementById("detail").innerHTML = `
+    <header><h3>${p.first}</h3><p>${p.from} · ${left} days until discharge</p></header>
+    <dl>
+      <dt>Care level</dt><dd>${p.careLevel}</dd>
+      <dt>Budget</dt><dd>${p.budget}</dd>
+      <dt>Geography</dt><dd>${p.geo}</dd>
+      <dt>Contact</dt><dd>${p.rp}</dd>
+      <dt>Unit held</dt><dd>${p.unit || "none"}</dd>
+      <dt>Rate</dt><dd>${p.rate ? PA.money(p.rate) + " per month" : "not set"}</dd>
+      <dt>Make ready</dt><dd>${p.makeReady.replace(/_/g, " ")}</dd>
+      ${p.declineReason ? `<dt>Decline reason</dt><dd>${p.declineReason}</dd>` : ""}
+    </dl>
+    <div class="act">${act}</div>
+    <div class="guard"><b>What this seat cannot see</b> diagnosis, treatment, payer detail, or anything else from the sending building's record. The packet is the whole handoff.</div>`;
+
+  const a = document.getElementById("acc");
+  if (a) a.onclick = () => { st[p.id] = "touring"; p.unit = p.unit || "127"; draw(); open(p.id); };
+  const c = document.getElementById("con");
+  if (c) c.onclick = () => { st[p.id] = "move_in_confirmed"; p.moveIn = p.dischargeBy; p.recoveredDays = 18; draw(); open(p.id); };
+  const d = document.getElementById("dec");
+  if (d) d.onclick = () => { st[p.id] = "declined"; p.declineReason = "No inventory at budget"; draw(); open(p.id); };
+  draw();
+}
+
+draw();
+</script>
+</body>
+</html>

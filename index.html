@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SuiteBird PA · Seat demo</title>
+<link rel="icon" type="image/svg+xml" href="assets/suitebird-mark.svg">
+<link rel="stylesheet" href="assets/app.css">
+</head>
+<body>
+<script src="assets/shell.js"></script>
+<script>renderShell(null);</script>
+
+<div class="home">
+  <img src="assets/suitebird-logo.png" alt="Suite Bird" width="200" style="margin-bottom:18px;display:block">
+  <h1>One resident, five seats, one number at the top</h1>
+  <p>Every screen reads from the same dataset. When the social worker sends a handoff, the sales director receives it, and the recovered bed days that result are the same bed days the portfolio view counts. Nothing on the landlord screen is typed in.</p>
+
+  <div class="card grid" id="grid"></div>
+
+  <div class="tl">
+    <h2 style="font-size:16px;margin:0">The episode</h2>
+    <p style="color:var(--muted);margin:6px 0 0;max-width:64ch">Margaret Ellison, admitted to Cedar Point on July 2. Follow her across the seats. Day numbers are placeholders until real length of stay data replaces them.</p>
+    <ol>
+      <li><b>Day 1</b><span>Admitted to Cedar Point. Part A benefit opens.</span></li>
+      <li><b>Day 14</b><span>Business office sets the benefit clock. Seat 02.</span></li>
+      <li><b>Day 62</b><span>Coverage watch fires. The social worker sees it first. Seat 01.</span></li>
+      <li><b>Day 72</b><span>Handoff packet sent to Meadowbrook. Today.</span></li>
+      <li><b>Day 79</b><span>Sales director holds a unit and tours the family. Seat 03.</span></li>
+      <li><b>Day 88</b><span>Make ready scheduled against the move in date. Seat 06, not built.</span></li>
+      <li><b>Day 94</b><span>Move in. Recovered bed days begin accruing.</span></li>
+      <li><b>Day 101</b><span>Post discharge follow up. Seat 14, not built.</span></li>
+    </ol>
+    <p style="color:var(--muted);margin:18px 0 0;max-width:64ch">Without this, the only formal signal in that timeline is a notice issued 48 hours before coverage ends. Everything else is memory and a phone call.</p>
+  </div>
+</div>
+
+<script src="assets/data.js"></script>
+<script>
+document.getElementById("grid").innerHTML = SEATS.map((s) => {
+  const inner = `<span class="n">${s.n}</span>
+    <span class="nm">${s.short}<small>${s.role} · ${s.place}</small></span>
+    <span class="cl">${s.cls}</span><span class="st">${s.built ? "Built" : "Not built"}</span>`;
+  return s.built ? `<a href="seats/${s.id}.html">${inner}</a>` : `<div class="off">${inner}</div>`;
+}).join("");
+</script>
+</body>
+</html>

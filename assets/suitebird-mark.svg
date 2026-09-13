@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="SuiteBird">
+  <g fill="none" stroke="#4D2272" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M23 57V32L43 15l20 17v25"/>
+    <rect x="47" y="29" width="11" height="11" rx="1"/>
+    <path d="M52.5 29v11M47 34.5h11"/>
+  </g>
+  <path d="M11 43C9 31 16 22 27 21c3-.3 5 .4 6.6 1.6L38 24l-4.2 2.6C34.8 33 31 41 22 44Z" fill="#3A86D1"/>
+  <path d="M16 39c1.2-6.6 4.8-10.4 10.6-10.2C25.4 34.4 22 38 16 39Z" fill="#7FB4E4"/>
+  <path d="M11 43 3 47l4.6-7.6Z" fill="#3A86D1"/>
+  <circle cx="30.5" cy="25.6" r="1.4" fill="#2B4A72"/>
+</svg>

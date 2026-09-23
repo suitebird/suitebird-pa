@@ -18,24 +18,45 @@ const DEMO = {
     {
       id: "r-ellison", name: "Margaret Ellison", room: "214", building: "cedarpoint",
       admitted: "2026-07-02", payer: "part_a", planName: "Medicare Part A",
-      daysUsed: 72, daysTotal: 100, coverageEnds: "2026-10-10",
+      daysUsed: 73, daysTotal: 100, coverageEnds: "2026-10-09",
       careLevel: "Assisted living", budget: "$4,800 to $5,800",
       geo: "Greenville, 20 miles", rp: "Dana Ellison, daughter",
-      disposition: "none", handoff: "not_sent", note: ""
+      disposition: "none", handoff: "not_sent", note: "",
+      timeline: [
+        { date: "2026-07-02",    text: "Admitted to Cedar Point. Part A benefit opens." },
+        { date: "2026-07-15",    text: "Business office sets the benefit clock. Seat 02." },
+        { date: "auto:watch",    text: "Coverage watch fires at thirty days. The social worker sees it first. Seat 01." },
+        { date: "2026-09-12",    text: "Handoff packet sent to Meadowbrook. Today." },
+        { date: "2026-09-19",    text: "Sales director holds a unit and tours the family. Seat 03." },
+        { date: "auto:urgent",   text: "Fourteen day band. Priced options go to the family." },
+        { date: "2026-09-28",    text: "Make ready scheduled against the move in date. Seat 06, not built." },
+        { date: "auto:critical", text: "Seven day band. Move in date confirmed before the deadline, not after." },
+        { date: "2026-10-04",    text: "Move in. Recovered bed days begin accruing." },
+        { date: "auto:event",    text: "Part A benefit would have exhausted here. Five days of margin." },
+        { date: "2026-10-18",    text: "Post discharge follow up. Seat 14, not built." }
+      ]
     },
     {
       id: "r-whitcomb", name: "Harold Whitcomb", room: "208", building: "cedarpoint",
       admitted: "2026-08-19", payer: "advantage", planName: "Medicare Advantage, Humana",
-      dayOfStay: 24, authThrough: "2026-09-16", authInterval: 5, authRisk: "high",
+      dayOfStay: 25, authThrough: "2026-09-16", authInterval: 5, authRisk: "high",
       careLevel: "Assisted living, memory support", budget: "$6,200 to $7,000",
       geo: "Greer, 12 miles", rp: "Paul Whitcomb, son",
       disposition: "none", handoff: "not_sent",
-      note: "Third review in nine days. Plan has denied twice at this stage in similar cases."
+      note: "Third review in nine days. Plan has denied twice at this stage in similar cases.",
+      timeline: [
+        { date: "2026-08-19",    text: "Admitted to Cedar Point. Advantage plan authorises five days at a time." },
+        { date: "2026-08-24",    text: "First review. Authorisation extended." },
+        { date: "2026-09-02",    text: "Second review. Extended again, flagged high risk." },
+        { date: "auto:critical", text: "Seven day band fires against the current authorisation. Seat 01." },
+        { date: "2026-09-12",    text: "Handoff packet prepared. Today." },
+        { date: "auto:event",    text: "Authorisation ends. No day 21 and no day 100 in this story." }
+      ]
     },
     {
       id: "r-ferrante", name: "Dolores Ferrante", room: "112", building: "cedarpoint",
       admitted: "2026-06-11", payer: "part_a", planName: "Medicare Part A",
-      daysUsed: 93, daysTotal: 100, coverageEnds: "2026-09-19",
+      daysUsed: 94, daysTotal: 100, coverageEnds: "2026-09-18",
       careLevel: "Skilled, long term", budget: "Medicaid pending",
       geo: "Stay in place", rp: "Anne Ferrante, daughter",
       disposition: "medicaid_pending", handoff: "n/a",
@@ -44,7 +65,7 @@ const DEMO = {
     {
       id: "r-okoro", name: "James Okoro", room: "220", building: "cedarpoint",
       admitted: "2026-08-12", payer: "advantage", planName: "Medicare Advantage, UnitedHealthcare",
-      dayOfStay: 31, authThrough: "2026-09-25", authInterval: 7, authRisk: "medium",
+      dayOfStay: 32, authThrough: "2026-09-25", authInterval: 7, authRisk: "medium",
       careLevel: "Independent living with services", budget: "$3,900 to $4,600",
       geo: "Taylors, 8 miles", rp: "Grace Okoro, wife",
       disposition: "none", handoff: "not_sent", note: ""
@@ -52,7 +73,7 @@ const DEMO = {
     {
       id: "r-blankenship", name: "Ruth Blankenship", room: "105", building: "cedarpoint",
       admitted: "2026-06-16", payer: "part_a", planName: "Medicare Part A",
-      daysUsed: 88, daysTotal: 100, coverageEnds: "2026-09-24",
+      daysUsed: 89, daysTotal: 100, coverageEnds: "2026-09-23",
       careLevel: "Assisted living", budget: "$5,100 to $5,900",
       geo: "Greenville, 20 miles", rp: "Michael Blankenship, son",
       disposition: "handoff_sent", handoff: "touring", note: ""
@@ -66,7 +87,7 @@ const DEMO = {
     {
       id: "r-marsh", name: "Evelyn Marsh", room: "118", building: "cedarpoint",
       admitted: "2026-07-29", payer: "part_a", planName: "Medicare Part A",
-      daysUsed: 45, daysTotal: 100, coverageEnds: "2026-11-06",
+      daysUsed: 46, daysTotal: 100, coverageEnds: "2026-11-05",
       careLevel: "Assisted living", budget: "$4,600 to $5,400",
       geo: "Simpsonville, 18 miles", rp: "Karen Marsh, daughter",
       disposition: "none", handoff: "not_sent", note: ""
@@ -74,14 +95,14 @@ const DEMO = {
     {
       id: "r-nash", name: "Theodore Nash", room: "202", building: "cedarpoint",
       admitted: "2026-08-31", payer: "advantage", planName: "Medicare Advantage, Aetna",
-      dayOfStay: 12, authThrough: "2026-10-02", authInterval: 7, authRisk: "low",
+      dayOfStay: 13, authThrough: "2026-10-02", authInterval: 7, authRisk: "low",
       careLevel: "Undetermined", budget: "Undetermined", geo: "Undetermined",
       rp: "Susan Nash, wife", disposition: "none", handoff: "not_sent", note: ""
     },
     {
       id: "r-ruiz", name: "Constance Ruiz", room: "110", building: "cedarpoint",
       admitted: "2026-06-08", payer: "part_a", planName: "Medicare Part A",
-      daysUsed: 96, daysTotal: 100, coverageEnds: "2026-09-16",
+      daysUsed: 97, daysTotal: 100, coverageEnds: "2026-09-15",
       careLevel: "Assisted living", budget: "$5,200 to $6,000",
       geo: "Greenville, 20 miles", rp: "Elena Ruiz, daughter",
       disposition: "move_in_confirmed", handoff: "confirmed",
@@ -96,14 +117,20 @@ const DEMO = {
     {
       id: "r-kobek", name: "Lorraine Kobek", room: "106", building: "cedarpoint",
       admitted: "2026-08-24", payer: "part_a", planName: "Medicare Part A",
-      daysUsed: 19, daysTotal: 100, coverageEnds: "2026-12-02",
+      daysUsed: 20, daysTotal: 100, coverageEnds: "2026-12-01",
       careLevel: "Undetermined", budget: "Undetermined", geo: "Undetermined",
-      rp: "Thomas Kobek, son", disposition: "none", handoff: "not_sent", note: ""
+      rp: "Thomas Kobek, son", disposition: "none", handoff: "not_sent", note: "",
+      timeline: [
+        { date: "2026-08-24",    text: "Admitted to Cedar Point. Days 1 to 20 covered in full." },
+        { date: "2026-09-12",    text: "Day 20. Today. Nothing has been said to the family yet." },
+        { date: "auto:event",    text: "Coinsurance begins at $217 a day. The benefit continues, it stops being free." },
+        { date: "auto:critical", text: "Seven day band would have fired here. It is already behind us, which is the point." }
+      ]
     },
     {
       id: "r-alvarado", name: "Vincent Alvarado", room: "212", building: "cedarpoint",
       admitted: "2026-08-02", payer: "advantage", planName: "Medicare Advantage, Humana",
-      dayOfStay: 41, authThrough: "2026-09-14", authInterval: 5, authRisk: "high",
+      dayOfStay: 42, authThrough: "2026-09-14", authInterval: 5, authRisk: "high",
       careLevel: "Assisted living", budget: "$4,900 to $5,700",
       geo: "Greer, 12 miles", rp: "Rosa Alvarado, wife",
       disposition: "none", handoff: "not_sent",

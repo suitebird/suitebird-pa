@@ -20,22 +20,18 @@
 
   <div class="tl">
     <h2 style="font-size:16px;margin:0">The episode</h2>
-    <p style="color:var(--muted);margin:6px 0 0;max-width:64ch">Margaret Ellison, admitted to Cedar Point on July 2. Follow her across the seats. Day numbers are placeholders until real length of stay data replaces them.</p>
-    <ol>
-      <li><b>Day 1</b><span>Admitted to Cedar Point. Part A benefit opens.</span></li>
-      <li><b>Day 14</b><span>Business office sets the benefit clock. Seat 02.</span></li>
-      <li><b>Day 62</b><span>Coverage watch fires. The social worker sees it first. Seat 01.</span></li>
-      <li><b>Day 72</b><span>Handoff packet sent to Meadowbrook. Today.</span></li>
-      <li><b>Day 79</b><span>Sales director holds a unit and tours the family. Seat 03.</span></li>
-      <li><b>Day 88</b><span>Make ready scheduled against the move in date. Seat 06, not built.</span></li>
-      <li><b>Day 94</b><span>Move in. Recovered bed days begin accruing.</span></li>
-      <li><b>Day 101</b><span>Post discharge follow up. Seat 14, not built.</span></li>
-    </ol>
+    <p style="color:var(--muted);margin:6px 0 0;max-width:64ch">The clock does not care which day it is. It watches whatever the authorisation says: the coinsurance cliff on day 21, the benefit exhausting at day 100, or an Advantage plan that stops authorising in week two. Same code, three residents.</p>
+
+    <div class="scen" id="scen"></div>
+    <p class="scen-lede" id="tl-lede"></p>
+    <ol id="tl-list"></ol>
+
     <p style="color:var(--muted);margin:18px 0 0;max-width:64ch">Without this, the only formal signal in that timeline is a notice issued 48 hours before coverage ends. Everything else is memory and a phone call.</p>
   </div>
 </div>
 
 <script src="assets/data.js"></script>
+<script src="assets/clock.js"></script>
 <script>
 document.getElementById("grid").innerHTML = SEATS.map((s) => {
   const inner = `<span class="n">${s.n}</span>
@@ -43,6 +39,41 @@ document.getElementById("grid").innerHTML = SEATS.map((s) => {
     <span class="cl">${s.cls}</span><span class="st">${s.built ? "Built" : "Not built"}</span>`;
   return s.built ? `<a href="seats/${s.id}.html">${inner}</a>` : `<div class="off">${inner}</div>`;
 }).join("");
+
+/* Three residents, one code path. No typed in day numbers below this line. */
+const SCENARIOS = ["r-kobek", "r-ellison", "r-whitcomb"];
+
+function renderTimeline(id) {
+  const r = DEMO.residents.find((x) => x.id === id);
+  const crit = CLOCK.fires(r, "critical");
+
+  document.getElementById("tl-lede").innerHTML = crit
+    ? `<b>${r.name}</b>, admitted ${PA.fmt(r.admitted)}, ${r.planName}. Today is ${CLOCK.stamp(r, DEMO.today)}.
+       Next coverage event: ${crit.label} on ${CLOCK.stamp(r, crit.date)}.
+       The seven day band fires ${PA.fmt(crit.fireDate)}.`
+    : `<b>${r.name}</b> has no coverage clock.`;
+
+  document.getElementById("tl-list").innerHTML = CLOCK.timeline(r)
+    .map((s) => {
+      const past = PA.daysBetween(DEMO.today, s.date) < 0;
+      const now = s.date === DEMO.today;
+      return `<li${now ? ' class="now"' : past ? ' class="past"' : ""}>
+        <b>${CLOCK.stamp(r, s.date)}</b><span>${s.text}</span></li>`;
+    })
+    .join("");
+
+  document.querySelectorAll("#scen button").forEach((b) =>
+    b.setAttribute("aria-current", b.dataset.id === id ? "true" : "false")
+  );
+}
+
+document.getElementById("scen").innerHTML = SCENARIOS.map((id) => {
+  const r = DEMO.residents.find((x) => x.id === id);
+  return `<button type="button" data-id="${id}" onclick="renderTimeline('${id}')">
+    ${r.name.split(" ").pop()}<small>${CLOCK.nextKind(r)}</small></button>`;
+}).join("");
+
+renderTimeline(SCENARIOS[0]);
 </script>
 </body>
 </html>

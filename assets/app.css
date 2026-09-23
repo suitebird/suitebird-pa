@@ -207,7 +207,7 @@ button:focus-visible, a:focus-visible, tr:focus-visible { outline: 2px solid var
 .grid .cl, .grid .st { font-size: 12.5px; color: var(--muted); }
 .tl { margin-top: 30px; }
 .tl ol { list-style: none; margin: 12px 0 0; padding: 0; }
-.tl li { display: grid; grid-template-columns: 62px 1fr; gap: 14px; padding: 8px 0; border-bottom: 1px solid var(--line-soft); }
+.tl li { display: grid; grid-template-columns: 118px 1fr; gap: 14px; padding: 8px 0; border-bottom: 1px solid var(--line-soft); }
 .tl li b { font-family: "IBM Plex Mono", monospace; color: var(--deep); font-weight: 500; }
 
 @media (max-width: 940px) {
@@ -217,3 +217,25 @@ button:focus-visible, a:focus-visible, tr:focus-visible { outline: 2px solid var
   .tiles { grid-template-columns: repeat(2, 1fr); }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* Scenario switcher on the episode timeline */
+.scen { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0 0; }
+.scen button {
+  display: flex; flex-direction: column; gap: 2px; text-align: left;
+  font: inherit; font-size: 13px; color: var(--ink); cursor: pointer;
+  background: var(--paper); border: 1px solid var(--line);
+  border-radius: var(--r); padding: 8px 12px; min-width: 150px;
+}
+.scen button small { color: var(--muted); font-size: 11px; letter-spacing: .04em; text-transform: uppercase; }
+.scen button:hover { border-color: var(--blue); }
+.scen button[aria-current="true"] { border-color: var(--brand); box-shadow: inset 0 0 0 1px var(--brand); }
+.scen button[aria-current="true"] small { color: var(--brand); }
+.scen-lede { color: var(--muted); margin: 12px 0 0; max-width: 72ch; }
+.tl li.past b { color: var(--faint); }
+.tl li.past span { color: var(--muted); }
+.tl li.now { background: var(--sky); border-radius: 6px; padding-left: 8px; padding-right: 8px; }
+.tl li.now b { color: var(--deep); }
+@media (max-width: 560px) {
+  .tl li { grid-template-columns: 1fr; gap: 2px; }
+  .scen button { flex: 1 1 100%; }
+}
